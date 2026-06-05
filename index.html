@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Security check</title>
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+
+      /* ---------- Page shell ---------- */
+      .captcha-page {
+        font-family: 'Inter', system-ui, sans-serif;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        background: #f0f4f8;
+        padding: 1.5rem 1rem;
+      }
+
+      /* ---------- Animated background ---------- */
+      .captcha-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+      .captcha-glow { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.35; }
+      .captcha-glow--top-left {
+        width: 500px; height: 500px; top: -140px; left: -140px;
+        background: radial-gradient(circle, #4bc8be 0%, transparent 70%);
+        animation: captchaGlowPulse 7s ease-in-out infinite alternate;
+      }
+      .captcha-glow--bottom-right {
+        width: 600px; height: 600px; bottom: -160px; right: -160px;
+        background: radial-gradient(circle, #28a99e 0%, transparent 70%);
+        animation: captchaGlowPulse 9s ease-in-out infinite alternate-reverse;
+      }
+      @keyframes captchaGlowPulse {
+        from { opacity: 0.22; transform: scale(1); }
+        to { opacity: 0.42; transform: scale(1.1); }
+      }
+
+      .captcha-particle {
+        position: absolute; border-radius: 50%; background: #4bc8be; opacity: 0;
+        animation: captchaFloat 8s ease-in-out infinite;
+      }
+      @keyframes captchaFloat {
+        0% { opacity: 0; transform: translateY(0) scale(1); }
+        30% { opacity: 0.15; }
+        70% { opacity: 0.08; transform: translateY(-40px) scale(0.8); }
+        100% { opacity: 0; transform: translateY(-80px) scale(0.5); }
+      }
+
+      /* ---------- Main card ---------- */
+      .captcha-card {
+        position: relative; z-index: 1;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 24px;
+        box-shadow: 0 4px 24px rgba(75, 200, 190, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06), 0 20px 60px rgba(0, 0, 0, 0.08);
+        padding: 3rem 2.5rem 2.5rem;
+        max-width: 520px; width: 100%;
+        display: flex; flex-direction: column; align-items: center; gap: 1.25rem; text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .captcha-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(75, 200, 190, 0.16), 0 1px 4px rgba(0, 0, 0, 0.06), 0 28px 72px rgba(0, 0, 0, 0.1);
+      }
+
+      /* ---------- Shield icon ---------- */
+      .captcha-shield-wrap {
+        width: 88px; height: 88px; border-radius: 50%;
+        background: linear-gradient(135deg, #e6faf9 0%, #c4f0ed 100%);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 0 12px rgba(75, 200, 190, 0.1);
+        animation: captchaShieldBreathe 3.5s ease-in-out infinite; flex-shrink: 0;
+      }
+      .captcha-shield-wrap--success {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        box-shadow: 0 0 0 14px rgba(34, 197, 94, 0.12);
+        animation: captchaShieldPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      @keyframes captchaShieldBreathe {
+        0%, 100% { box-shadow: 0 0 0 10px rgba(75, 200, 190, 0.08); }
+        50% { box-shadow: 0 0 0 18px rgba(75, 200, 190, 0.18); }
+      }
+      @keyframes captchaShieldPop {
+        0% { transform: scale(0.7); opacity: 0.5; }
+        60% { transform: scale(1.15); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      .captcha-shield-icon { width: 44px; height: 44px; }
+      .captcha-shield-icon--check { animation: captchaCheckIn 0.4s ease-out; }
+      @keyframes captchaCheckIn {
+        from { opacity: 0; transform: scale(0.5); }
+        to { opacity: 1; transform: scale(1); }
+      }
+
+      /* ---------- Heading + subtext ---------- */
+      .captcha-heading {
+        font-size: 1.35rem; font-weight: 800; color: #1a2a2a; line-height: 1.35;
+        letter-spacing: -0.01em; max-width: 380px; margin: 0;
+      }
+      .captcha-heading--success { color: #15803d; animation: captchaFadeUp 0.4s ease-out; }
+      @keyframes captchaFadeUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .captcha-subtext { font-size: 0.9rem; color: #5a7474; margin: 0; line-height: 1.6; max-width: 340px; }
+
+      /* ---------- Trust badges ---------- */
+      .captcha-badges { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin-top: -0.25rem; }
+      .captcha-badge {
+        display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 600;
+        color: #039185; background: rgba(75, 200, 190, 0.1); border: 1px solid rgba(75, 200, 190, 0.25);
+        border-radius: 999px; padding: 0.3rem 0.75rem; letter-spacing: 0.02em;
+      }
+
+      /* ---------- Buttons ---------- */
+      .captcha-btn-group { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; margin-top: 0.5rem; }
+      .captcha-btn-group .captcha-btn { margin-top: 0; }
+      .captcha-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; width: 100%;
+        min-height: 64px; border: none; border-radius: 14px; cursor: pointer; font-family: inherit;
+        font-size: 1rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+        transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease, filter 0.18s ease;
+        position: relative; overflow: hidden; margin-top: 0.5rem;
+      }
+      .captcha-btn::after {
+        content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+        background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.35) 60%, transparent 90%);
+        animation: captchaBtnShimmer 2.5s linear infinite;
+      }
+      @keyframes captchaBtnShimmer { from { left: -100%; } to { left: 200%; } }
+      .captcha-btn:hover { transform: translateY(-3px) scale(1.015); filter: brightness(1.06); }
+      .captcha-btn:active { transform: translateY(0) scale(0.98); }
+
+      .captcha-btn--verify {
+        background: linear-gradient(135deg, #4bc8be 0%, #039185 100%); color: #fff;
+        box-shadow: 0 6px 20px rgba(75, 200, 190, 0.45), 0 2px 6px rgba(3, 145, 133, 0.3);
+      }
+      .captcha-btn--verify:hover { box-shadow: 0 10px 28px rgba(75, 200, 190, 0.55), 0 4px 10px rgba(3, 145, 133, 0.35); }
+
+      /* Secondary "I am a robot" button — quiet outline */
+      .captcha-btn--robot {
+        background: #fff; color: #5a7474; border: 1.5px solid rgba(75, 200, 190, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+      .captcha-btn--robot:hover { border-color: rgba(75, 200, 190, 0.55); color: #1a2a2a; filter: none; }
+      .captcha-btn--robot::after { display: none; }
+
+      .captcha-btn-text { position: relative; z-index: 1; }
+      .captcha-btn-arrow { position: relative; z-index: 1; transition: transform 0.2s ease; }
+      .captcha-btn:hover .captcha-btn-arrow { transform: translateX(4px); }
+
+      @media (max-width: 540px) {
+        .captcha-card { padding: 2rem 1.5rem 2rem; border-radius: 18px; gap: 1rem; }
+        .captcha-heading { font-size: 1.15rem; }
+        .captcha-btn { font-size: 0.9rem; min-height: 58px; border-radius: 12px; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="captcha-page">
+      <!-- Animated background -->
+      <div class="captcha-bg" id="captchaBg" aria-hidden="true">
+        <div class="captcha-glow captcha-glow--top-left"></div>
+        <div class="captcha-glow captcha-glow--bottom-right"></div>
+      </div>
+
+      <!-- Main card -->
+      <main class="captcha-card" role="main">
+        <div class="captcha-shield-wrap" id="shieldWrap">
+          <svg class="captcha-shield-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M32 4L8 14v18c0 13.255 10.32 24.594 24 27 13.68-2.406 24-13.745 24-27V14L32 4z" fill="url(#shieldGrad)" />
+            <path d="M32 22v10M32 38h.01" stroke="#fff" stroke-width="3.5" stroke-linecap="round" />
+            <defs>
+              <linearGradient id="shieldGrad" x1="8" y1="4" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4BC8BE" />
+                <stop offset="1" stop-color="#039185" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <h1 class="captcha-heading" id="heading">Please confirm you're not a robot to continue</h1>
+        <p class="captcha-subtext" id="subtext">This quick check helps us keep the experience safe and spam-free.</p>
+
+        <div class="captcha-badges" id="badges" aria-label="Security features">
+          <div class="captcha-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            SSL Secured
+          </div>
+          <div class="captcha-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Private &amp; Safe
+          </div>
+          <div class="captcha-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Verified Source
+          </div>
+        </div>
+
+        <div class="captcha-btn-group" id="btnGroup">
+          <button id="notRobotBtn" class="captcha-btn captcha-btn--verify" aria-label="I'm not a robot">
+            <span class="captcha-btn-text">I'M NOT A ROBOT</span>
+            <svg class="captcha-btn-arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
+          <button id="robotBtn" class="captcha-btn captcha-btn--robot" aria-label="I am a robot">
+            <span class="captcha-btn-text">I AM A ROBOT</span>
+          </button>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      (function () {
+        'use strict';
+
+        // ====== Config ======
+        var REDIRECT_URL = 'https://nice-advice.info/en/v/digital-marketing';
+        var REDIRECT_DELAY_MS = 1000;
+        var TRACKING_API = 'https://api.nice-advice.info/track-click';
+        var PRELEND_SLUG = 'digital-marketing';
+        var LOCALE = 'en';
+
+        // ====== Tracker (ported from the funnel's track.ts) ======
+        function ss() { try { return window.sessionStorage; } catch (e) { return null; } }
+
+        function uuid() {
+          if (typeof crypto !== 'undefined' && crypto.randomUUID) { try { return crypto.randomUUID(); } catch (e) {} }
+          return 'sid-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+        }
+
+        // session_id — created here (funnel entry) and forwarded to nice-advice as na_sid
+        function getSessionId() {
+          var store = ss();
+          try {
+            var sid = (store && store.getItem('na_session_id')) || '';
+            if (!sid) { sid = uuid(); if (store) store.setItem('na_session_id', sid); }
+            return sid;
+          } catch (e) { return 'sid-fallback'; }
+        }
+
+        // session start (ms) — forwarded as na_t0 so the timeline stays continuous
+        function getSessionStart() {
+          var store = ss();
+          try {
+            var t = parseInt((store && store.getItem('na_session_start')) || '0', 10);
+            if (!t) { t = Date.now(); if (store) store.setItem('na_session_start', String(t)); }
+            return t;
+          } catch (e) { return Date.now(); }
+        }
+
+        function nextSequence() {
+          var store = ss();
+          try {
+            var n = parseInt((store && store.getItem('na_seq')) || '0', 10) + 1;
+            if (store) store.setItem('na_seq', String(n));
+            return n;
+          } catch (e) { return 0; }
+        }
+
+        function getTrackingParams() {
+          var out = {};
+          try {
+            var p = new URLSearchParams(window.location.search);
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'platform', 'gclid', 'fbclid', 'ttclid'].forEach(function (k) {
+              var v = p.get(k);
+              if (v) out[k] = v;
+            });
+          } catch (e) {}
+          return out;
+        }
+
+        function trackStep(eventType, meta) {
+          try {
+            var data = {
+              session_id: getSessionId(),
+              event_type: eventType,
+              prelend_slug: PRELEND_SLUG,
+              locale: LOCALE,
+              source_url: window.location.pathname,
+              page_url: window.location.href,
+              referrer: document.referrer || undefined,
+              screen_width: window.screen ? window.screen.width : undefined,
+              screen_height: window.screen ? window.screen.height : undefined,
+              sequence: nextSequence(),
+              ms_since_start: Date.now() - getSessionStart(),
+              clicked_at: new Date().toISOString()
+            };
+            var tp = getTrackingParams();
+            for (var k in tp) { if (Object.prototype.hasOwnProperty.call(tp, k)) data[k] = tp[k]; }
+            if (meta) data.meta = meta;
+
+            var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            if (navigator.sendBeacon) {
+              navigator.sendBeacon(TRACKING_API, blob);
+            } else {
+              fetch(TRACKING_API, { method: 'POST', body: blob, keepalive: true }).catch(function () {});
+            }
+          } catch (e) { /* never break UX */ }
+        }
+
+        // ====== Redirect (forwards all params + na_sid/na_t0 to nice-advice) ======
+        function buildRedirectUrl() {
+          try {
+            var url = new URL(REDIRECT_URL);
+            new URLSearchParams(window.location.search).forEach(function (value, key) {
+              url.searchParams.set(key, value);
+            });
+            url.searchParams.set('na_sid', getSessionId());
+            url.searchParams.set('na_t0', String(getSessionStart()));
+            return url.toString();
+          } catch (e) { return REDIRECT_URL; }
+        }
+
+        // ====== Background particles ======
+        (function () {
+          var bg = document.getElementById('captchaBg');
+          if (!bg) return;
+          for (var i = 0; i < 18; i++) {
+            var s = document.createElement('span');
+            s.className = 'captcha-particle';
+            s.style.left = (Math.random() * 100) + '%';
+            s.style.top = (Math.random() * 100) + '%';
+            var size = Math.random() * 4 + 2;
+            s.style.width = size + 'px';
+            s.style.height = size + 'px';
+            s.style.animationDelay = (Math.random() * 6) + 's';
+            bg.appendChild(s);
+          }
+        })();
+
+        // ====== State / handlers ======
+        var META = { step: 'captcha', host: location.hostname };
+        var fired = false;
+        var redirectTimer = null;
+
+        var shieldWrap = document.getElementById('shieldWrap');
+        var heading = document.getElementById('heading');
+        var subtext = document.getElementById('subtext');
+        var badges = document.getElementById('badges');
+        var btnGroup = document.getElementById('btnGroup');
+
+        var SUCCESS_SHIELD =
+          '<svg class="captcha-shield-icon captcha-shield-icon--check" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+          '<path d="M32 4L8 14v18c0 13.255 10.32 24.594 24 27 13.68-2.406 24-13.745 24-27V14L32 4z" fill="url(#shieldGradSuccess)"/>' +
+          '<path d="M20 32l8 8 16-16" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '<defs><linearGradient id="shieldGradSuccess" x1="8" y1="4" x2="56" y2="58" gradientUnits="userSpaceOnUse">' +
+          '<stop stop-color="#22c55e"/><stop offset="1" stop-color="#16a34a"/></linearGradient></defs></svg>';
+
+        function showSuccess() {
+          if (shieldWrap) { shieldWrap.classList.add('captcha-shield-wrap--success'); shieldWrap.innerHTML = SUCCESS_SHIELD; }
+          if (heading) { heading.classList.add('captcha-heading--success'); heading.textContent = 'Verification Successful!'; }
+          if (subtext) { subtext.textContent = 'Verification complete. Redirecting you now…'; }
+          if (badges) { badges.style.display = 'none'; }
+          if (btnGroup) { btnGroup.style.display = 'none'; }
+        }
+
+        // Both buttons behave the same: pass → success → redirect to nice-advice.
+        function handlePass() {
+          if (fired) return;
+          fired = true;
+          trackStep('captcha_passed', META);
+          showSuccess();
+          redirectTimer = setTimeout(function () {
+            window.location.href = buildRedirectUrl();
+          }, REDIRECT_DELAY_MS);
+        }
+
+        var notRobotBtn = document.getElementById('notRobotBtn');
+        var robotBtn = document.getElementById('robotBtn');
+        if (notRobotBtn) notRobotBtn.addEventListener('click', handlePass);
+        if (robotBtn) robotBtn.addEventListener('click', handlePass);
+
+        // Fire captcha_shown once on load.
+        trackStep('captcha_shown', META);
+      })();
+    </script>
+  </body>
+</html>
