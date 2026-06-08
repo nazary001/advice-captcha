@@ -210,33 +210,33 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
-            SSL Secured
+            <span class="captcha-badge-text">SSL Secured</span>
           </div>
           <div class="captcha-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
-            Private &amp; Safe
+            <span class="captcha-badge-text">Private &amp; Safe</span>
           </div>
           <div class="captcha-badge">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            Verified Source
+            <span class="captcha-badge-text">Verified Source</span>
           </div>
         </div>
 
         <div class="captcha-btn-group" id="btnGroup">
           <button id="notRobotBtn" class="captcha-btn captcha-btn--verify" aria-label="I'm not a robot">
-            <span class="captcha-btn-text">I'M NOT A ROBOT</span>
+            <span class="captcha-btn-text" id="notRobotText">I'M NOT A ROBOT</span>
             <svg class="captcha-btn-arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />
             </svg>
           </button>
           <button id="robotBtn" class="captcha-btn captcha-btn--robot" aria-label="I am a robot">
-            <span class="captcha-btn-text">I AM A ROBOT</span>
+            <span class="captcha-btn-text" id="robotText">I AM A ROBOT</span>
           </button>
         </div>
       </main>
@@ -244,17 +244,17 @@
       <footer class="captcha-footer">
         <div class="captcha-footer-inner">
           <hr class="captcha-divider" />
-          <p class="captcha-disclaimer">
+          <p class="captcha-disclaimer" id="disclaimer">
             The content provided here is for informational and educational purposes only and does not
             constitute financial, legal, medical, or professional advice. Results are not guaranteed and
             your experience may vary. Browser notifications are optional and can be turned off at any time.
           </p>
           <p class="captcha-legal-links">
-            By continuing, you agree to our
-            <a class="captcha-link" href="#">Terms of Use</a> and our
-            <a class="captcha-link" href="#">Privacy Policy</a>.
+            <span id="legalPrefix">By continuing, you agree to our</span>
+            <a class="captcha-link" href="#" id="termsLink">Terms of Use</a> <span id="legalMiddle">and our</span>
+            <a class="captcha-link" href="#" id="privacyLink">Privacy Policy</a>.
           </p>
-          <p class="captcha-company">© 2026 — All rights reserved.</p>
+          <p class="captcha-company" id="company">© 2026 — All rights reserved.</p>
         </div>
       </footer>
     </div>
@@ -263,12 +263,77 @@
       (function () {
         'use strict';
 
-        // ====== Config ======
-        var REDIRECT_URL = 'https://nice-advice.info/en/v/digital-marketing';
+        // ====== Config (locale-aware via ?lang=) ======
+        var LANG = 'en';
+        try {
+          var qLang = (new URLSearchParams(window.location.search).get('lang') || '').toLowerCase();
+          if (qLang === 'es') LANG = 'es';
+        } catch (e) {}
+
+        var REDIRECT_URL = 'https://nice-advice.info/' + LANG + '/v/digital-marketing';
         var REDIRECT_DELAY_MS = 1000;
         var TRACKING_API = 'https://api.nice-advice.info/track-click';
         var PRELEND_SLUG = 'digital-marketing';
-        var LOCALE = 'en';
+        var LOCALE = LANG;
+
+        // ====== Localized UI copy (es-419; falls back to English) ======
+        var STRINGS = {
+          en: {
+            title: 'Security check',
+            heading: "Please confirm you're not a robot to continue",
+            subtext: 'This quick check helps us keep the experience safe and spam-free.',
+            badges: ['SSL Secured', 'Private & Safe', 'Verified Source'],
+            notRobot: "I'M NOT A ROBOT",
+            robot: 'I AM A ROBOT',
+            successHeading: 'Verification Successful!',
+            successSubtext: 'Verification complete. Redirecting you now…',
+            disclaimer: 'The content provided here is for informational and educational purposes only and does not constitute financial, legal, medical, or professional advice. Results are not guaranteed and your experience may vary. Browser notifications are optional and can be turned off at any time.',
+            legalPrefix: 'By continuing, you agree to our',
+            terms: 'Terms of Use',
+            legalMiddle: 'and our',
+            privacy: 'Privacy Policy',
+            company: '© 2026 — All rights reserved.'
+          },
+          es: {
+            title: 'Verificación de seguridad',
+            heading: 'Confirma que no eres un robot para continuar',
+            subtext: 'Esta verificación rápida nos ayuda a mantener la experiencia segura y sin spam.',
+            badges: ['Protegido con SSL', 'Privado y seguro', 'Fuente verificada'],
+            notRobot: 'NO SOY UN ROBOT',
+            robot: 'SOY UN ROBOT',
+            successHeading: '¡Verificación exitosa!',
+            successSubtext: 'Verificación completa. Redirigiéndote ahora…',
+            disclaimer: 'El contenido aquí proporcionado es solo para fines informativos y educativos y no constituye asesoría financiera, legal, médica ni profesional. Los resultados no están garantizados y tu experiencia puede variar. Las notificaciones del navegador son opcionales y se pueden desactivar en cualquier momento.',
+            legalPrefix: 'Al continuar, aceptas nuestros',
+            terms: 'Términos de uso',
+            legalMiddle: 'y nuestra',
+            privacy: 'Política de privacidad',
+            company: '© 2026 — Todos los derechos reservados.'
+          }
+        };
+        var T = STRINGS[LANG] || STRINGS.en;
+
+        // Apply localized copy to the DOM (script runs at end of body → elements exist).
+        function applyStrings() {
+          try {
+            document.documentElement.lang = LANG;
+            document.title = T.title;
+            var setText = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+            setText('heading', T.heading);
+            setText('subtext', T.subtext);
+            var badgeEls = document.querySelectorAll('.captcha-badge-text');
+            for (var i = 0; i < badgeEls.length; i++) { if (T.badges[i]) badgeEls[i].textContent = T.badges[i]; }
+            setText('notRobotText', T.notRobot);
+            setText('robotText', T.robot);
+            setText('disclaimer', T.disclaimer);
+            setText('legalPrefix', T.legalPrefix);
+            setText('termsLink', T.terms);
+            setText('legalMiddle', T.legalMiddle);
+            setText('privacyLink', T.privacy);
+            setText('company', T.company);
+          } catch (e) {}
+        }
+        applyStrings();
 
         // ====== Tracker (ported from the funnel's track.ts) ======
         function ss() { try { return window.sessionStorage; } catch (e) { return null; } }
@@ -311,7 +376,7 @@
           var out = {};
           try {
             var p = new URLSearchParams(window.location.search);
-            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'platform', 'gclid', 'fbclid', 'ttclid'].forEach(function (k) {
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_campaign_name', 'utm_term', 'utm_content', 'platform', 'gclid', 'fbclid', 'ttclid'].forEach(function (k) {
               var v = p.get(k);
               if (v) out[k] = v;
             });
@@ -398,8 +463,8 @@
 
         function showSuccess() {
           if (shieldWrap) { shieldWrap.classList.add('captcha-shield-wrap--success'); shieldWrap.innerHTML = SUCCESS_SHIELD; }
-          if (heading) { heading.classList.add('captcha-heading--success'); heading.textContent = 'Verification Successful!'; }
-          if (subtext) { subtext.textContent = 'Verification complete. Redirecting you now…'; }
+          if (heading) { heading.classList.add('captcha-heading--success'); heading.textContent = T.successHeading; }
+          if (subtext) { subtext.textContent = T.successSubtext; }
           if (badges) { badges.style.display = 'none'; }
           if (btnGroup) { btnGroup.style.display = 'none'; }
         }
