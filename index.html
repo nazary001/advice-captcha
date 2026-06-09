@@ -384,13 +384,15 @@
           return out;
         }
 
-        function trackStep(eventType, meta) {
+        function trackStep(eventType, funnelStep, meta) {
           try {
             var data = {
               session_id: getSessionId(),
               event_type: eventType,
+              funnel_step: funnelStep,
               prelend_slug: PRELEND_SLUG,
               locale: LOCALE,
+              ui_locale: LOCALE,
               source_url: window.location.pathname,
               page_url: window.location.href,
               referrer: document.referrer || undefined,
@@ -473,7 +475,7 @@
         function handlePass() {
           if (fired) return;
           fired = true;
-          trackStep('captcha_passed', META);
+          trackStep('captcha_passed', 'captcha1_passed', META);
           showSuccess();
           redirectTimer = setTimeout(function () {
             window.location.href = buildRedirectUrl();
@@ -485,8 +487,8 @@
         if (notRobotBtn) notRobotBtn.addEventListener('click', handlePass);
         if (robotBtn) robotBtn.addEventListener('click', handlePass);
 
-        // Fire captcha_shown once on load.
-        trackStep('captcha_shown', META);
+        // Fire captcha_shown once on load (first gate = captcha1).
+        trackStep('captcha_shown', 'captcha1_shown', META);
       })();
     </script>
   </body>
