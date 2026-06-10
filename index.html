@@ -376,7 +376,7 @@
           var out = {};
           try {
             var p = new URLSearchParams(window.location.search);
-            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_campaign_name', 'utm_term', 'utm_content', 'platform', 'gclid', 'fbclid', 'ttclid'].forEach(function (k) {
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_campaign_name', 'utm_term', 'utm_content', 'platform', 'gclid', 'fbclid', 'ttclid', 'fb_pixel', 'fb_event'].forEach(function (k) {
               var v = p.get(k);
               if (v) out[k] = v;
             });
