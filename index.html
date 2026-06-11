@@ -372,13 +372,33 @@
           } catch (e) { return 0; }
         }
 
+        // A click id is "real" only if it isn't a literal ad-template macro
+        // (__CLICKID__ is NOT a valid TikTok macro — only previews/misconfigured
+        // URLs carry it) or the param's own name echoed back. Forwarding fakes
+        // poisons attribution, so: better no click id than a fake one.
+        var CLICK_ID_PARAMS = ['gclid', 'fbclid', 'ttclid'];
+        function isRealClickId(v) {
+          if (!v) return false;
+          // anchored to the WHOLE value: macros arrive as the entire param
+          if (/^__[A-Za-z0-9_]+__$/.test(v)) return false;
+          if (v.indexOf('{{') !== -1 || v.indexOf('}}') !== -1) return false;
+          var lower = v.toLowerCase();
+          if (lower === 'ttclid' || lower === 'fbclid' || lower === 'gclid' || lower === 'clickid') return false;
+          return true;
+        }
+
         function getTrackingParams() {
           var out = {};
           try {
             var p = new URLSearchParams(window.location.search);
             ['utm_source', 'utm_medium', 'utm_campaign', 'utm_campaign_name', 'utm_term', 'utm_content', 'platform', 'gclid', 'fbclid', 'ttclid', 'fb_pixel', 'fb_event'].forEach(function (k) {
               var v = p.get(k);
-              if (v) out[k] = v;
+              if (!v) return;
+              // utm macros stay (useful to classify preview/bot traffic), but
+              // garbage CLICK IDS are dropped — they must never reach the
+              // attribution chain.
+              if (CLICK_ID_PARAMS.indexOf(k) !== -1 && !isRealClickId(v)) return;
+              out[k] = v;
             });
           } catch (e) {}
           return out;
@@ -420,6 +440,9 @@
           try {
             var url = new URL(REDIRECT_URL);
             new URLSearchParams(window.location.search).forEach(function (value, key) {
+              // never forward fake click ids (literal __CLICKID__ macros etc.)
+              // to the prelander — it would persist them for the whole session
+              if (CLICK_ID_PARAMS.indexOf(key) !== -1 && !isRealClickId(value)) return;
               url.searchParams.set(key, value);
             });
             url.searchParams.set('na_sid', getSessionId());
